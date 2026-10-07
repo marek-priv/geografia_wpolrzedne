@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Geograficzny — Współrzędne geograficzne · klasa 6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f7f5;
+    --card: #ffffff;
+    --ink: #1a2333;
+    --ink-soft: #5b6577;
+    --ink-faint: #8a93a5;
+    --line: #e0e8e4;
+    --navy: #134e4a;
+    --navy-soft: #0f766e;
+    --accent: #f59e0b;
+    --green: #16a34a;
+    --green-bg: #e7f6ec;
+    --red: #dc2626;
+    --red-bg: #fdecec;
+    --radius: 16px;
+    --shadow: 0 1px 3px rgba(20,40,50,.08), 0 10px 30px rgba(20,40,50,.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* subtle lat/long grid pattern — map aesthetic */
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(rgba(19,78,74,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(19,78,74,.045) 1px, transparent 1px),
+      radial-gradient(1000px 400px at 80% -10%, rgba(15,118,110,.10), transparent 60%);
+    background-size: 40px 40px, 40px 40px, 100% 100%;
+    color: var(--ink);
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: clip;
+    padding: 28px 16px 64px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  /* ---------- header ---------- */
+  .brand {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+  }
+  .brand .logo {
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    background: linear-gradient(135deg, var(--navy), var(--navy-soft));
+    color: #a7f3d0; display: grid; place-items: center;
+    font-weight: 800; font-size: 20px;
+    box-shadow: 0 4px 14px rgba(19,78,74,.35);
+  }
+  .brand h1 { font-size: clamp(16px, 3.4vw, 20px); font-weight: 800; letter-spacing: .2px; }
+  .brand p { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+
+  /* ---------- card ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: clamp(18px, 4vw, 30px);
+    animation: rise .3s ease;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- progress ---------- */
+  .progress-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 2px 10px;
+    font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .progress-top .mod { color: var(--navy-soft); text-transform: uppercase; letter-spacing: .5px; font-size: 10.5px; }
+  .bar { height: 8px; background: #e4eae8; border-radius: 999px; overflow: hidden; margin-bottom: 20px; }
+  .bar i {
+    display: block; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--navy-soft), var(--accent));
+    width: 0; transition: width .35s ease;
+  }
+
+  /* ---------- question ---------- */
+  .q-text { font-size: clamp(16px, 3.6vw, 19px); font-weight: 700; line-height: 1.4; margin-bottom: 18px; overflow-wrap: break-word; }
+  .diagram {
+    margin: 0 0 18px; border: 1px solid var(--line); border-radius: 12px;
+    background: #f7faf9; padding: 10px; text-align: center;
+  }
+  .diagram svg { max-width: 100%; height: auto; }
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    display: flex; align-items: center; gap: 12px; text-align: left;
+    border: 1.5px solid var(--line); border-radius: 12px;
+    background: #fbfcfc; padding: 13px 15px;
+    font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+    cursor: pointer; transition: border-color .15s, background .15s, transform .12s;
+    overflow-wrap: break-word;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--navy-soft); background: #eef7f4; transform: translateY(-1px); }
+  .opt:disabled { cursor: default; }
+  .opt .key {
+    flex: none; width: 28px; height: 28px; border-radius: 8px;
+    background: #e4eae8; color: var(--ink-soft);
+    display: grid; place-items: center; font-size: 12px; font-weight: 800;
+  }
+  .opt.correct { border-color: var(--green); background: var(--green-bg); }
+  .opt.correct .key { background: var(--green); color: #fff; }
+  .opt.wrong { border-color: var(--red); background: var(--red-bg); }
+  .opt.wrong .key { background: var(--red); color: #fff; }
+  .opt.dim { opacity: .55; }
+
+  /* ---------- explanation ---------- */
+  .expl {
+    margin-top: 16px; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--line); animation: rise .3s ease;
+  }
+  .expl .expl-head {
+    padding: 10px 15px; font-size: 12.5px; font-weight: 800;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .expl.ok .expl-head { background: var(--green-bg); color: var(--green); }
+  .expl.bad .expl-head { background: var(--red-bg); color: var(--red); }
+  .expl .expl-body {
+    padding: 12px 15px; font-size: 13px; color: var(--ink-soft); line-height: 1.55;
+    background: #fbfcfc;
+  }
+  .expl .expl-body b { color: var(--ink); }
+  .next-row { margin-top: 16px; display: flex; justify-content: flex-end; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+    border-radius: 10px; padding: 11px 20px; border: none;
+    max-width: 100%;
+    transition: transform .12s, box-shadow .15s, background .15s;
+  }
+  .btn-primary { background: var(--navy); color: #fff; box-shadow: 0 4px 14px rgba(19,78,74,.30); }
+  .btn-primary:hover { background: var(--navy-soft); transform: translateY(-1px); }
+  .btn-ghost { background: #e7eeeb; color: var(--ink); }
+  .btn-ghost:hover { background: #dbe6e2; }
+
+  /* ---------- start screen ---------- */
+  .start-hero {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 60%, #2a9d8f 100%);
+    border-radius: 12px; color: #fff; padding: 22px; margin-bottom: 18px;
+  }
+  .start-hero h2 { font-size: clamp(18px, 4.4vw, 23px); font-weight: 800; }
+  .start-hero p { margin-top: 6px; font-size: 13px; color: #c8e8e2; }
+  .modlist { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 18px; }
+  .modlist span {
+    font-size: 11px; font-weight: 600; color: var(--ink-soft);
+    background: #e7eeeb; border-radius: 999px; padding: 4px 11px;
+  }
+  .start-row { display: flex; justify-content: center; }
+
+  /* ---------- results ---------- */
+  .result-grid { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; }
+  .donut { position: relative; width: 130px; height: 130px; }
+  .donut svg { transform: rotate(-90deg); }
+  .donut .pct {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    flex-direction: column; text-align: center;
+  }
+  .donut .pct b { font-size: 26px; font-weight: 800; display: block; }
+  .donut .pct span { font-size: 11px; color: var(--ink-faint); font-weight: 600; }
+  .grade-badge {
+    display: inline-block; padding: 6px 16px; border-radius: 999px;
+    font-size: 15px; font-weight: 800; margin: 4px 0 8px;
+  }
+  .g6 { background: #eef0fe; color: #4f46e5; }
+  .g5 { background: var(--green-bg); color: var(--green); }
+  .g4 { background: #e3f3f7; color: #0e7490; }
+  .g3 { background: #fdf3e2; color: #b45309; }
+  .g2 { background: #fdeee3; color: #c2410c; }
+  .g1 { background: var(--red-bg); color: var(--red); }
+  .result-note { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+  .result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+
+  /* ---------- review ---------- */
+  .rev-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .rev-item .rq { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .rev-item .ra { font-size: 12.5px; margin: 3px 0; display: flex; gap: 8px; align-items: baseline; }
+  .rev-item .ra .tick { font-weight: 800; width: 16px; flex: none; }
+  .ra.good { color: var(--green); }
+  .ra.bad { color: var(--red); }
+  .rev-item .re { margin-top: 8px; font-size: 12px; color: var(--ink-soft); background: #fbfcfc; border-left: 3px solid var(--accent); padding: 8px 10px; border-radius: 0 8px 8px 0; }
+  .rev-num { font-size: 10.5px; font-weight: 800; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+
+  .hidden { display: none !important; }
+  footer { margin-top: 22px; text-align: center; font-size: 11px; color: var(--ink-faint); }
+
+  @media (max-width: 560px) {
+    body { padding: 16px 10px 48px; }
+    .result-grid { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .result-actions { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brand">
+    <div class="logo">🧭</div>
+    <div>
+      <h1>Quiz Geograficzny — Współrzędne geograficzne</h1>
+      <p>Geografia · klasa 6 szkoły podstawowej · powtórka przed sprawdzianem</p>
+    </div>
+  </header>
+
+  <!-- ================= START ================= -->
+  <section class="card" id="screen-start">
+    <div class="start-hero">
+      <h2>Współrzędne geograficzne</h2>
+      <p>20 pytań sprawdzających wiedzę z całego działu — od równika po GPS.</p>
+    </div>
+    <div class="modlist">
+      <span>Równik i południki</span><span>Półkule</span><span>Siatka geograficzna</span>
+      <span>Szerokość i długość</span><span>Rozciągłość</span><span>GPS</span>
+    </div>
+    <div class="start-row">
+      <button class="btn btn-primary" id="btn-start">Rozpocznij quiz →</button>
+    </div>
+  </section>
+
+  <!-- ================= QUIZ ================= -->
+  <section class="card hidden" id="screen-quiz">
+    <div class="progress-top">
+      <span class="mod" id="q-mod"></span>
+      <span id="q-count"></span>
+    </div>
+    <div class="bar"><i id="q-bar"></i></div>
+    <div class="q-text" id="q-text"></div>
+    <div id="q-diagram"></div>
+    <div class="opts" id="q-opts"></div>
+    <div id="q-expl"></div>
+    <div class="next-row hidden" id="q-nextrow">
+      <button class="btn btn-primary" id="btn-next">Następne pytanie →</button>
+    </div>
+  </section>
+
+  <!-- ================= RESULTS ================= -->
+  <section class="card hidden" id="screen-result">
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:16px">Twój wynik</h2>
+    <div class="result-grid">
+      <div class="donut">
+        <svg width="130" height="130">
+          <circle cx="65" cy="65" r="56" fill="none" stroke="#e4eae8" stroke-width="12"/>
+          <circle id="donut-arc" cx="65" cy="65" r="56" fill="none" stroke="#16a34a" stroke-width="12"
+                  stroke-linecap="round" stroke-dasharray="351.9" stroke-dashoffset="351.9"/>
+        </svg>
+        <div class="pct"><b id="res-pct">0%</b><span id="res-pts"></span></div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.5px">Ocena szkolna</div>
+        <span class="grade-badge g3" id="res-grade">—</span>
+        <div class="result-note" id="res-note"></div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button class="btn btn-primary" id="btn-restart">Spróbuj ponownie</button>
+      <button class="btn btn-ghost" id="btn-review">Przegląd odpowiedzi</button>
+    </div>
+  </section>
+
+  <!-- ================= REVIEW ================= -->
+  <section class="card hidden" id="screen-review">
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:4px">Przegląd odpowiedzi</h2>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:16px" id="rev-sub"></p>
+    <div id="rev-list"></div>
+    <div class="result-actions">
+      <button class="btn btn-primary" id="btn-again">Spróbuj ponownie</button>
+      <button class="btn btn-ghost" id="btn-back">Wróć do wyniku</button>
+    </div>
+  </section>
+
+  <footer>Materiał edukacyjny · powtórka do działu „Współrzędne geograficzne”</footer>
+</div>
+
+<script>
+/* grid diagrams: lats bottom→top, lons left→right, pts: {x: lon index, y: lat index, label} */
+const GRID_STD = {
+  lons: ["0°", "10°E", "20°E", "30°E", "40°E"],
+  lats: ["0°", "10°N", "20°N", "30°N"],
+  pts: [
+    { x: 1, y: 2, label: "A" },
+    { x: 3, y: 1, label: "B" },
+    { x: 4, y: 3, label: "C" }
+  ]
+};
+const GRID_HEMI = {
+  lons: ["20°W", "10°W", "0°", "10°E", "20°E"],
+  lats: ["20°S", "10°S", "0°", "10°N", "20°N"],
+  pts: [
+    { x: 1, y: 3, label: "A" },
+    { x: 3, y: 1, label: "B" },
+    { x: 4, y: 4, label: "C" }
+  ]
+};
+
+const QUESTIONS = [
+  {
+    mod: "Pojęcia podstawowe",
+    q: "Który równoleżnik jest najdłuższy i dzieli Ziemię na półkulę północną i południową?",
+    opts: ["Zwrotnik Raka", "Równik", "Południk zerowy", "Koło podbiegunowe"],
+    a: 1,
+    expl: "<b>Równik (0°)</b> to najdłuższy równoleżnik — ok. 40 075 km. Dzieli Ziemię na półkulę <b>północną (N)</b> i <b>południową (S)</b>. Im dalej od równika ku biegunom, tym równoleżniki są krótsze."
+  },
+  {
+    mod: "Pojęcia podstawowe",
+    q: "Południk zerowy (0°) przebiega przez:",
+    opts: ["Paryż", "Greenwich koło Londynu", "Warszawę", "Rzym"],
+    a: 1,
+    expl: "<b>Południk zerowy (0°)</b> przebiega przez obserwatorium w <b>Greenwich</b> (Londyn). Razem z południkiem 180° dzieli Ziemię na półkulę <b>wschodnią (E)</b> i <b>zachodnią (W)</b>. Od niego mierzymy długość geograficzną."
+  },
+  {
+    mod: "Pojęcia podstawowe",
+    q: "Co jest prawdą o południkach?",
+    opts: [
+      "Mają różną długość i są równoległe do siebie",
+      "Mają jednakową długość i zbiegają się na biegunach",
+      "Tworzą okręgi równoległe do równika",
+      "Najdłuższym południkiem jest równik"
+    ],
+    a: 1,
+    expl: "<b>Południki</b> to półokręgi łączące biegun północny z południowym — wszystkie mają <b>jednakową długość</b> i zbiegają się na biegunach. Równoleżniki to coś innego: pełne okręgi równoległe do równika, o różnej długości."
+  },
+  {
+    mod: "Pojęcia podstawowe",
+    q: "Które stwierdzenie o równoleżnikach jest prawdziwe?",
+    opts: [
+      "Łączą oba bieguny",
+      "Mają jednakową długość",
+      "Tworzą okręgi równoległe do równika — krótsze w kierunku biegunów",
+      "Zbiegają się na biegunie północnym"
+    ],
+    a: 2,
+    expl: "<b>Równoleżniki</b> to okręgi prostopadłe do osi Ziemi, równoległe do równika. Najdłuższy jest równik (0°), a im bliżej biegunów, tym krótsze — na samych biegunach kurczą się do punktu."
+  },
+  {
+    mod: "Półkule",
+    q: "Polska leży w całości na półkuli:",
+    opts: [
+      "północnej i zachodniej",
+      "północnej i wschodniej",
+      "południowej i wschodniej",
+      "północnej i zachodniej oraz wschodniej"
+    ],
+    a: 1,
+    expl: "Polska leży na półkuli <b>północnej</b> (na północ od równika, ok. 49–55°N) i <b>wschodniej</b> (na wschód od południka 0°, ok. 14–24°E). Pamiętaj: cała Europa leży na półkuli północnej i wschodniej."
+  },
+  {
+    mod: "Siatka geograficzna",
+    q: "Siatka geograficzna to:",
+    opts: [
+      "układ południków i równoleżników naniesiony na kulę ziemską (globus)",
+      "linie konturów na mapie hipsometrycznej",
+      "linie podziału administracyjnego kraju",
+      "siatka pikseli na zdjęciu satelitarnym"
+    ],
+    a: 0,
+    expl: "<b>Siatka geograficzna</b> to wyobrażony układ południków i równoleżników na kulistej Ziemi (i globusie). Gdy przeniesiemy ją na płaską mapę, mówimy o <b>siatce kartograficznej</b> — jej wygląd zależy od odwzorowania mapy."
+  },
+  {
+    mod: "Siatka geograficzna",
+    q: "Czym siatka kartograficzna różni się od geograficznej?",
+    opts: [
+      "Niczym — to dwa nazwy tej samej siatki",
+      "Kartograficzna to siatka geograficzna przeniesiona na płaską mapę — może mieć zniekształcony układ linii",
+      "Kartograficzna istnieje tylko na globusie",
+      "Geograficzna nie zawiera równoleżników"
+    ],
+    a: 1,
+    expl: "<b>Siatka kartograficzna</b> = siatka geograficzna „spłaszczona” na mapę. Ponieważ kuli nie da się rozłożyć na płaszczyźnie bez zniekształceń, na różnych mapach linie południków i równoleżników wyglądają inaczej (proste, łuki, promienie)."
+  },
+  {
+    mod: "Szerokość geograficzna",
+    q: "Szerokość geograficzną mierzymy:",
+    opts: [
+      "od południka zerowego na wschód lub zachód do 180°",
+      "od równika na północ lub południe do 90°",
+      "od równika na wschód do 360°",
+      "od bieguna północnego w dół do 180°"
+    ],
+    a: 1,
+    expl: "<b>Szerokość geograficzna</b> to kąt między równikiem a punktem: od <b>0° (równik)</b> do <b>90°N</b> (biegun północny) lub <b>90°S</b> (biegun południowy). Litery N i S mówią, na której półkuli leży punkt."
+  },
+  {
+    mod: "Długość geograficzna",
+    q: "Długość geograficzna przyjmuje wartości:",
+    opts: [
+      "od 0° do 90°E lub 90°W",
+      "od 0° do 180°E lub 180°W",
+      "od 0° do 360°E",
+      "od 0°N do 90°S"
+    ],
+    a: 1,
+    expl: "<b>Długość geograficzna</b> mierzona jest od <b>południka zerowego (0°)</b> na wschód (E) lub zachód (W) — maksymalnie do <b>180°</b>, gdzie wschodnia i zachodnia skala się spotykają. Łatwa pamiętówka: szerokość do 90°, długość do 180°."
+  },
+  {
+    mod: "Szerokość i długość",
+    q: "Warszawa ma współrzędne ok. 52°N, 21°E. Co oznacza ten zapis?",
+    opts: [
+      "52° na wschód od Greenwich i 21° na północ od równika",
+      "52° na północ od równika i 21° na wschód od południka zerowego",
+      "52° na południe i 21° na zachód",
+      "52 kilometry od równika i 21 kilometry od Greenwich"
+    ],
+    a: 1,
+    expl: "W zapisie współrzędnych <b>najpierw podajemy szerokość geograficzną</b> (52°N = 52° na północ od równika), potem <b>długość</b> (21°E = 21° na wschód od południka zerowego). To taka „kartka z adresem” każdego miejsca na Ziemi."
+  },
+  {
+    mod: "Odczytywanie punktów",
+    q: "Punkt o współrzędnych 30°S, 40°W leży na półkuli:",
+    opts: [
+      "północnej i wschodniej",
+      "południowej i wschodniej",
+      "południowej i zachodniej",
+      "północnej i zachodniej"
+    ],
+    a: 2,
+    expl: "Litera przy współrzędnej mówi o półkuli: <b>S = południowa</b>, <b>W = zachodnia</b> (od ang. South, West). Zatem 30°S → półkula południowa, 40°W → zachodnia. Odpowiedź: południowa i zachodnia."
+  },
+  {
+    mod: "Odczytywanie punktów",
+    q: "Punkt o współrzędnych 60°N, 100°E leży na półkuli:",
+    opts: [
+      "północnej i wschodniej",
+      "północnej i zachodniej",
+      "południowej i wschodniej",
+      "południowej i zachodniej"
+    ],
+    a: 0,
+    expl: "<b>N = północna</b>, <b>E = wschodnia</b>. Punkt 60°N, 100°E to okolice środkowej Syberii — głęboko na półkuli północnej i wschodniej. Pamiętaj: najpierw szerokość (N/S), potem długość (E/W)."
+  },
+  {
+    mod: "Odczytywanie punktów",
+    q: "Przyjrzyj się siatce. Jakie są współrzędne punktu B?",
+    grid: GRID_STD,
+    opts: ["10°N, 30°E", "30°N, 10°E", "10°S, 30°W", "30°E, 10°N"],
+    a: 0,
+    expl: "Odczytujemy najpierw <b>szerokość</b> (od poziomych równoleżników): punkt B leży na linii <b>10°N</b>. Potem <b>długość</b> (od pionowych południków): linia <b>30°E</b>. Zapis: 10°N, 30°E. Zasada: NAJPIERW północ/południe, POTEM wschód/zachód."
+  },
+  {
+    mod: "Odczytywanie punktów",
+    q: "Na tej samej siatce: punkt A ma współrzędne:",
+    grid: GRID_STD,
+    opts: ["10°N, 20°E", "20°N, 10°E", "20°N, 30°E", "10°E, 20°N"],
+    a: 1,
+    expl: "Punkt A: szerokość odczytana z równoleżnika = <b>20°N</b>, długość z południka = <b>10°E</b>. Zapisujemy „20°N, 10°E”. Uwaga na pułapkę „10°E, 20°N” — kolejność N/S przed E/W jest obowiązkowa."
+  },
+  {
+    mod: "Odczytywanie punktów",
+    q: "Na siatce z równikiem i południkiem 0°: który punkt leży na półkuli południowej i wschodniej?",
+    grid: GRID_HEMI,
+    opts: ["Punkt A", "Punkt B", "Punkt C", "Żaden z nich"],
+    a: 1,
+    expl: "Półkula południowa = <b>poniżej równika (0°)</b>, wschodnia = <b>na prawo od południka 0°</b>. Punkt B leży poniżej równika (10°S) i na prawo od południka zerowego (10°E). A jest na półkuli północnej zachodniej, C — północnej wschodniej."
+  },
+  {
+    mod: "Rozciągłość",
+    q: "Rozciągłość południkowa obszaru to:",
+    opts: [
+      "różnica długości geograficznej skrajnych południków",
+      "różnica szerokości geograficznej skrajnych równoleżników",
+      "odległość w kilometrach wzdłuż równika",
+      "liczba równoleżników przecinających obszar"
+    ],
+    a: 1,
+    expl: "<b>Rozciągłość południkowa</b> mówimy o osi północ–południe: to różnica <b>szerokości geograficznej</b> skrajnych równoleżników. Pułapka w nazwie — mierzymy szerokość, ale wzdłuż południków! Rozciągłość równoleżnikowa to z kolei różnica długości geograficznej."
+  },
+  {
+    mod: "Rozciągłość",
+    q: "Polska rozciąga się między ok. 49°N a 55°N. Jaka jest rozciągłość południkowa Polski?",
+    opts: ["104°", "6°", "55°", "49°"],
+    a: 1,
+    expl: "Punkty 49°N i 55°N leżą na <b>tej samej półkuli (obie N)</b>, więc <b>ODEJMUJEMY</b>: 55° − 49° = <b>6°</b>. Na tej samej półkuli równoleżniki „liczą w tę samą stronę” od równika — różnica to zwykłe odejmowanie."
+  },
+  {
+    mod: "Rozciągłość",
+    q: "Punkt X leży na 20°N, punkt Y na 30°S. Ile stopni dzieli je wzdłuż południka?",
+    opts: ["10°", "50°", "30°", "20°"],
+    a: 1,
+    expl: "Punkty są na <b>przeciwnych półkulach</b> (N i S) — 20°N to 20° na północ od równika, 30°S to 30° na południe. Żeby przejść z X do Y, pokonujemy oba odcinki: <b>DODAJEMY</b>: 20° + 30° = <b>50°</b>. Równik liczymy raz — pośrodku drogi."
+  },
+  {
+    mod: "Rozciągłość",
+    q: "Miasto P ma współrzędne 15°E, miasto R — 45°E. Oblicz ich rozciągłość równoleżnikową.",
+    opts: ["60°", "30°", "15°", "45°"],
+    a: 1,
+    expl: "Rozciągłość równoleżnikowa = różnica <b>długości</b> geograficznej. Oba punkty na tej samej półkuli wschodniej (E i E) → <b>ODEJMUJEMY</b>: 45° − 15° = <b>30°</b>. Gdyby było 15°W i 45°E (przeciwne), dodałbyś: 15° + 45° = 60°."
+  },
+  {
+    mod: "GPS i zastosowania",
+    q: "Nawigacja satelitarna (GPS) w smartfonie wyznacza twoje położenie dzięki:",
+    opts: [
+      "pomiarowi odległości od kilku satelitów i odczytaniu współrzędnych geograficznych",
+      "zdjęciom robiennym przez kamerę telefonu",
+      "pomiarowi siły pola magnetycznego Ziemi",
+      "sygnałowi z najbliższej wieży telefonii komórkowej"
+    ],
+    a: 0,
+    expl: "<b>GPS</b> odbiera sygnały z co najmniej kilku satelitów krążących wokół Ziemi — z czasów ich dotarcia oblicza odległości i wyznacza dokładne <b>współrzędne geograficzne</b> (szerokość, długość, a nawet wysokość). To współrzędne w praktycznym zastosowaniu!"
+  }
+];
+
+const GRADES = [
+  { min: 100, label: "celujący (6)", cls: "g6", note: "Perfekcyjnie! Wiedza na najwyższym poziomie." },
+  { min: 90,  label: "bardzo dobry (5)", cls: "g5", note: "Świetny wynik — tylko drobne potknięcia." },
+  { min: 75,  label: "dobry (4)", cls: "g4", note: "Solidna wiedza, warto powtórzyć szczegóły." },
+  { min: 50,  label: "dostateczny (3)", cls: "g3", note: "Podstawy są, ale przeczytaj wyjaśnienia i powtórz materiał." },
+  { min: 35,  label: "dopuszczający (2)", cls: "g2", note: "Dużo do nadrobienia — sięgnij po podręcznik i spróbuj jeszcze raz." },
+  { min: 0,   label: "niedostateczny (1)", cls: "g1", note: "Nie poddawaj się! Powtórz materiał i spróbuj ponownie." }
+];
+
+const $ = id => document.getElementById(id);
+const screens = { start: $("screen-start"), quiz: $("screen-quiz"), result: $("screen-result"), review: $("screen-review") };
+const KEYS = ["A", "B", "C", "D"];
+
+let idx = 0, score = 0, answers = [];
+
+/* ---------- SVG coordinate grid ---------- */
+function gridSVG(g) {
+  const W = 460, H = 340, mL = 56, mR = 20, mT = 20, mB = 44;
+  const pw = W - mL - mR, ph = H - mT - mB;
+  const nx = g.lons.length, ny = g.lats.length;
+  const sx = pw / (nx - 1), sy = ph / (ny - 1);
+  const x = i => mL + i * sx;
+  const y = j => mT + ph - j * sy; // lat index 0 at bottom
+  let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">`;
+  // grid lines
+  for (let i = 0; i < nx; i++)
+    s += `<line x1="${x(i)}" y1="${mT}" x2="${x(i)}" y2="${mT + ph}" stroke="#b9cdc8" stroke-width="${g.lons[i].startsWith("0") && !g.lons[i].includes("W") && !g.lons[i].includes("E") ? 2 : 1}"/>`;
+  for (let j = 0; j < ny; j++)
+    s += `<line x1="${mL}" y1="${y(j)}" x2="${mL + pw}" y2="${y(j)}" stroke="${g.lats[j] === "0°" ? "#0f766e" : "#b9cdc8"}" stroke-width="${g.lats[j] === "0°" ? 2.5 : 1}"/>`;
+  // axis labels
+  for (let i = 0; i < nx; i++)
+    s += `<text x="${x(i)}" y="${mT + ph + 18}" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" fill="#5b6577" font-weight="600">${g.lons[i]}</text>`;
+  for (let j = 0; j < ny; j++)
+    s += `<text x="${mL - 8}" y="${y(j) + 4}" text-anchor="end" font-size="11" font-family="Inter,sans-serif" fill="#5b6577" font-weight="600">${g.lats[j]}</text>`;
+  // points
+  for (const p of g.pts) {
+    s += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="8" fill="#134e4a"/>`;
+    s += `<text x="${x(p.x)}" y="${y(p.y) + 4.5}" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" fill="#ffffff" font-weight="800">${p.label}</text>`;
+  }
+  s += `</svg>`;
+  return `<div class="diagram">${s}</div>`;
+}
+
+function show(name) {
+  Object.values(screens).forEach(s => s.classList.add("hidden"));
+  screens[name].classList.remove("hidden");
+  screens[name].style.animation = "none";
+  void screens[name].offsetWidth;
+  screens[name].style.animation = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[idx];
+  $("q-mod").textContent = q.mod;
+  $("q-count").textContent = `Pytanie ${idx + 1} z ${QUESTIONS.length}`;
+  $("q-bar").style.width = `${(idx / QUESTIONS.length) * 100}%`;
+  $("q-text").textContent = q.q;
+  $("q-diagram").innerHTML = q.grid ? gridSVG(q.grid) : "";
+  $("q-expl").innerHTML = "";
+  $("q-nextrow").classList.add("hidden");
+  $("btn-next").textContent = idx === QUESTIONS.length - 1 ? "Zobacz wynik →" : "Następne pytanie →";
+
+  $("q-opts").innerHTML = q.opts.map((o, i) =>
+    `<button class="opt" data-i="${i}"><span class="key">${KEYS[i]}</span><span>${o}</span></button>`
+  ).join("");
+  $("q-opts").querySelectorAll(".opt").forEach(b =>
+    b.addEventListener("click", () => pick(+b.dataset.i)));
+}
+
+function pick(i) {
+  const q = QUESTIONS[idx];
+  answers[idx] = i;
+  const ok = i === q.a;
+  if (ok) score++;
+  $("q-opts").querySelectorAll(".opt").forEach((b, j) => {
+    b.disabled = true;
+    if (j === q.a) b.classList.add("correct");
+    else if (j === i) b.classList.add("wrong");
+    else b.classList.add("dim");
+  });
+  $("q-bar").style.width = `${((idx + 1) / QUESTIONS.length) * 100}%`;
+  $("q-expl").innerHTML = `
+    <div class="expl ${ok ? "ok" : "bad"}">
+      <div class="expl-head">${ok ? "✔ Dobrze!" : "✘ Niestety — poprawna odpowiedź to " + KEYS[q.a]}</div>
+      <div class="expl-body"><b>Wyjaśnienie:</b> ${q.expl}</div>
+    </div>`;
+  $("q-nextrow").classList.remove("hidden");
+  $("q-expl").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function gradeFor(pct) {
+  return GRADES.find(g => pct >= g.min);
+}
+
+function showResults() {
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  const g = gradeFor(pct);
+  $("res-pct").textContent = pct + "%";
+  $("res-pts").textContent = `${score}/${QUESTIONS.length} punktów`;
+  const badge = $("res-grade");
+  badge.textContent = g.label;
+  badge.className = "grade-badge " + g.cls;
+  $("res-note").textContent = g.note;
+  const arc = $("donut-arc");
+  const circ = 2 * Math.PI * 56;
+  arc.style.strokeDasharray = circ;
+  arc.style.stroke = pct >= 50 ? "#16a34a" : pct >= 35 ? "#f59e0b" : "#dc2626";
+  arc.style.transition = "none";
+  arc.style.strokeDashoffset = circ;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    arc.style.transition = "stroke-dashoffset .9s ease";
+    arc.style.strokeDashoffset = circ * (1 - pct / 100);
+  }));
+  show("result");
+}
+
+function renderReview() {
+  $("rev-sub").textContent = `Twój wynik: ${score}/${QUESTIONS.length} — kliknij „Spróbuj ponownie”, aby zagrać jeszcze raz.`;
+  $("rev-list").innerHTML = QUESTIONS.map((q, i) => {
+    const you = answers[i];
+    const good = you === q.a;
+    return `<div class="rev-item">
+      <div class="rev-num">Pytanie ${i + 1} · ${q.mod}</div>
+      <div class="rq">${q.q}</div>
+      ${q.grid ? gridSVG(q.grid) : ""}
+      <div class="ra ${good ? "good" : "bad"}"><span class="tick">${good ? "✔" : "✘"}</span>
+        <span>Twoja odpowiedź: <b>${you !== undefined ? q.opts[you] : "brak"}</b></span></div>
+      ${good ? "" : `<div class="ra good"><span class="tick">✔</span><span>Poprawna: <b>${q.opts[q.a]}</b></span></div>`}
+      <div class="re">${q.expl}</div>
+    </div>`;
+  }).join("");
+  show("review");
+}
+
+function restart() {
+  idx = 0; score = 0; answers = [];
+  renderQuestion();
+  show("quiz");
+}
+
+$("btn-start").addEventListener("click", restart);
+$("btn-next").addEventListener("click", () => {
+  if (idx < QUESTIONS.length - 1) { idx++; renderQuestion(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  else showResults();
+});
+$("btn-restart").addEventListener("click", restart);
+$("btn-again").addEventListener("click", restart);
+$("btn-review").addEventListener("click", renderReview);
+$("btn-back").addEventListener("click", () => show("result"));
+</script>
+</body>
+</html>
